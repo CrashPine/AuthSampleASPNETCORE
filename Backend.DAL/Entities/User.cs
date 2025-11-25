@@ -9,6 +9,9 @@ public class User
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    // Navigation
+    // Навигация
     public List<RefreshToken> RefreshTokens { get; set; } = new();
+
+    // История анализов контрактов
+    public List<ContractAnalysis> ContractAnalyses { get; set; } = new();
 }
