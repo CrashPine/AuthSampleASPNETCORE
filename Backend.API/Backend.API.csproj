@@ -21,4 +21,8 @@
       <ProjectReference Include="..\Backend.BLL\Backend.BLL.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Settings\" />
+    </ItemGroup>
+
 </Project>

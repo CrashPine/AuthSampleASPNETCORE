@@ -2,12 +2,16 @@ using Backend.DAL;
 using Backend.BLL.Mappings;
 using Backend.BLL.Services;
 using Backend.BLL.Interfaces;
+using Backend.BLL.AI;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System.Reflection;
+using Backend.API.Settings;
+using Backend.BLL.Factory;
 using Microsoft.OpenApi.Models;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
@@ -23,16 +27,39 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // ---------- AutoMapper ----------
-builder.Services.AddAutoMapper(cfg => { }, typeof(UserProfile).Assembly);
-
+builder.Services.AddAutoMapper(
+    cfg => { }, 
+    AppDomain.CurrentDomain.GetAssemblies()
+);
 // ---------- JWT settings ----------
 builder.Services.Configure<JwtSettings>(
     builder.Configuration.GetSection("Jwt")
 );
 
+// ---------- AI Settings ----------
+builder.Services.Configure<AiSettings>(
+    builder.Configuration.GetSection("AI")
+);
+
+// ---------- AI Initializer Factory ----------
+builder.Services.AddSingleton<IAiInitializerFactory, AiInitializerFactory>();
+
+// ---------- Contract Analysis Pipeline ----------
+builder.Services.AddScoped(sp =>
+{
+    var factory = sp.GetRequiredService<IAiInitializerFactory>();
+
+    // Можно гибко выбрать комбинацию моделей
+    var model1 = factory.CreateCloud(); // первая модель — облачная
+    var model2 = factory.CreateLocal(); // вторая модель — локальная (можно заменить на облачную)
+
+    return new ContractAnalysisPipeline(model1, model2);
+});
+
 // ---------- Services ----------
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IContractAnalysisService, ContractAnalysisService>();
 
 // ---------- JWT Authentication ----------
 var jwtSettings = builder.Configuration.GetSection("Jwt").Get<JwtSettings>()!;
@@ -74,7 +101,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "My API", Version = "v1" });
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Backend API", Version = "v1" });
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -95,7 +122,7 @@ builder.Services.AddSwaggerGen(c =>
                     Id = "Bearer" 
                 }
             },
-            new string[] {}
+            Array.Empty<string>()
         }
     });
 });
