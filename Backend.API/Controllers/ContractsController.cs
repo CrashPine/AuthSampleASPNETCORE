@@ -43,7 +43,26 @@ public class ContractsController : ControllerBase
     [HttpGet("analysis/{id}")]
     public async Task<IActionResult> GetAnalysis(Guid id)
     {
-        // Простой пример получения анализа — можно реализовать через отдельный сервис/репозиторий
-        return NotFound(); // реализация чтения — в зависимости от требований
+        try
+        {
+            var result = await _analysisService.GetAnalysisByIdAsync(id);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }    
     }
+    
+    [HttpGet("user/{userId:guid}")]
+    public async Task<IActionResult> GetAnalysesByUserId(Guid userId)
+    {
+        var analyses = await _analysisService.GetAnalysesByUserIdAsync(userId);
+
+        if (analyses == null || !analyses.Any())
+            return NotFound("Анализы для данного пользователя не найдены.");
+
+        return Ok(analyses);
+    }
+    
 }

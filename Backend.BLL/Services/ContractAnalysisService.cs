@@ -5,6 +5,7 @@ using Backend.BLL.Factory;
 using Backend.BLL.Interfaces;
 using Backend.DAL;
 using Backend.DAL.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace Backend.BLL.Services;
 
@@ -72,4 +73,37 @@ public class ContractAnalysisService : IContractAnalysisService
 
         return dto;
     }
+    
+    public async Task<ContractAnalysisDto> GetAnalysisByIdAsync(Guid id)
+    {
+        var analysis = await _db.ContractAnalyses
+            .AsNoTracking()
+            .FirstOrDefaultAsync(a => a.Id == id);
+
+        if (analysis == null)
+            throw new KeyNotFoundException($"Contract analysis with id {id} not found.");
+
+        return _mapper.Map<ContractAnalysisDto>(analysis);
+    }
+    
+    public async Task<IEnumerable<ContractAnalysisDto>> GetAnalysesByUserIdAsync(Guid userId)
+    {
+        var analyses = await _db.ContractAnalyses
+            .AsNoTracking()
+            .Where(a => a.UserId == userId)
+            .Include(a => a.Contract)
+            .OrderByDescending(a => a.CreatedAt)
+            .ToListAsync();
+
+        return analyses.Select(a => new ContractAnalysisDto
+        {
+            AnalysisId = a.Id,
+            ContractId = a.ContractId,
+            ContractName = a.Contract?.Name ?? string.Empty,
+            Summary = a.Summary,
+            CreatedAt = a.CreatedAt
+        });
+    }
+    
+    
 }
