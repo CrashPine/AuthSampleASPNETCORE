@@ -68,7 +68,9 @@ public class ContractAnalysisService : IContractAnalysisService
             ContractId = contract.Id,
             ContractName = contract.Name,
             Summary = analysis.Summary,
-            CreatedAt = analysis.CreatedAt
+            CreatedAt = analysis.CreatedAt,
+            SourceCode = contract.SourceCode
+            
         };
 
         return dto;
@@ -78,13 +80,23 @@ public class ContractAnalysisService : IContractAnalysisService
     {
         var analysis = await _db.ContractAnalyses
             .AsNoTracking()
+            .Include(a => a.Contract)
             .FirstOrDefaultAsync(a => a.Id == id);
 
         if (analysis == null)
             throw new KeyNotFoundException($"Contract analysis with id {id} not found.");
 
-        return _mapper.Map<ContractAnalysisDto>(analysis);
+        return new ContractAnalysisDto
+        {
+            AnalysisId = analysis.Id,
+            ContractId = analysis.ContractId,
+            ContractName = analysis.Contract?.Name ?? string.Empty,
+            Summary = analysis.Summary,
+            CreatedAt = analysis.CreatedAt,
+            SourceCode = analysis.Contract?.SourceCode ?? string.Empty
+        };
     }
+
     
     public async Task<IEnumerable<ContractAnalysisDto>> GetAnalysesByUserIdAsync(Guid userId)
     {
@@ -101,8 +113,10 @@ public class ContractAnalysisService : IContractAnalysisService
             ContractId = a.ContractId,
             ContractName = a.Contract?.Name ?? string.Empty,
             Summary = a.Summary,
-            CreatedAt = a.CreatedAt
+            CreatedAt = a.CreatedAt,
+            SourceCode = a.Contract?.SourceCode ?? string.Empty
         });
+
     }
     
     
